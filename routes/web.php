@@ -20,8 +20,15 @@ $router->post('save2', 'PostController@save2');
 $router->post('save3', 'PostController@save3');
 $router->post('save4', 'PostController@save4');
 
-$router->get('aaa', 'PostController@aaa');
-
+$router->post('aaa', 'PostController@aaa');  //APP 注册
+$router->post('bbb', 'PostController@bbb');  //APP 登录
+//$router->get('ccc', ['middleware' => 'AccessToken', function () {
+//    'PostController@ccc';
+//}]);
+$router->get('ccc', 'PostController@ccc');
 
 $router->get('log', 'LoginController@log');
 $router->post('login', 'LoginController@login');
+
+
+

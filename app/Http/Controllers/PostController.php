@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Redis;
 
 class PostController extends Controller
 {
@@ -97,9 +100,90 @@ class PostController extends Controller
         }
     }
 
-    public function aaa()
+
+    //app 注册
+    public function aaa(Request $request)
     {
 //        header("Access-Control-Allow-Origin: http://clent.1809a.com");
-        echo time();die;
+        header("Access-Control-Allow-Origin: *");
+//        echo time();die;
+        $nickname =  $request->input('nickname');
+        $password = password_hash($request->input('password'),PASSWORD_BCRYPT);
+//        print_r($email);
+//        print_r($password);die;
+        $info = [
+            'nickname'    => $nickname,
+            'password'    => $password,
+        ];
+//        print_r($info);die;
+
+        $nickname = DB::table('user')->where(['nickname'=>$nickname])->first();
+//        print_r($email);die;
+        if($nickname){
+            $arr = ['status'=>3,'msg'=>'用户已存在'];
+            json_encode($arr,JSON_UNESCAPED_UNICODE);
+            return $arr;
+        }
+
+        $arr = DB::table('user')->insertGetId($info);
+        if($arr){
+            $arr = ['status'=>1,'msg'=>'注册成功'];
+            json_encode($arr,JSON_UNESCAPED_UNICODE);
+            return $arr;
+        }else{
+            $arr = ['status'=>0,'msg'=>'注册失败'];
+            json_encode($arr,JSON_UNESCAPED_UNICODE);
+            return $arr;
+        }
     }
+
+
+    //app 登录
+    public function bbb(Request $request){
+
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE");
+        header('Access-Control-Allow-Headers:x-requested-with,content-type');
+
+        $nickname = $request->input('nickname');
+        $password = $request->input('password');
+
+        $arr = DB::table('user')->where(['nickname'=>$nickname])->first();
+        if ($arr){
+
+            if (password_verify($password,$arr->password)){
+
+                $token = $this->token($arr->id);
+                $token_key = 'apptoken:id' .$arr->id;
+                Redis::set($token_key,$token);
+                Redis::expire($token_key,259210);
+            }
+
+            $arr = ['status'=>1,'msg'=>'登录成功','token'=>$token,'id'=>$arr->id];
+            json_encode($arr,JSON_UNESCAPED_UNICODE);
+            return $arr;
+
+        }else{
+            $arr = ['status'=>0,'msg'=>'登录失败'];
+            json_encode($arr,JSON_UNESCAPED_UNICODE);
+            return $arr;
+
+        }
+    }
+
+    //设置token值
+    protected function token($id){
+        $token = substr(sha1($id . time() . Str::random(10)),5,20);
+        return $token;
+    }
+
+    //个人中心
+    public function ccc(){
+//        header("Access-Control-Allow-Origin: *");
+//        header("Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE");
+//        header('Access-Control-Allow-Headers:x-requested-with,content-type');
+
+        echo time();
+    }
+
 }
