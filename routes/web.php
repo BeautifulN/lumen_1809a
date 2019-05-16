@@ -25,10 +25,11 @@ $router->post('bbb', 'PostController@bbb');  //APP 登录
 //$router->get('ccc', ['middleware' => 'AccessToken', function () {
 //    'PostController@ccc';
 //}]);
-$router->get('ccc', 'PostController@ccc');
+$router->post('ccc', 'PostController@ccc');
 
 $router->get('log', 'LoginController@log');
 $router->post('login', 'LoginController@login');
 
-
+$router->post('passreg', 'PostController@passreg');  //app的curl注册
+$router->post('passlog', 'PostController@passlog');  //app的curl登录
 

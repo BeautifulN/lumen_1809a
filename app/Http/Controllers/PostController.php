@@ -100,13 +100,89 @@ class PostController extends Controller
         }
     }
 
+    public function passreg()  //注册  接受APP的curl的值
+    {
+        $str = file_get_contents("php://input");
+//        echo '密文+base64:'.$str;
+
+        $arr = base64_decode($str);  //base64解开
+//        print_r($arr);
+        $pk = openssl_get_publickey('file://'.storage_path('app/key/public.pem'));
+        openssl_public_decrypt($arr,$dec_data,$pk);
+//        echo '<hr>';
+//        echo '明文:'.$dec_data;
+
+        $post_json = json_decode($dec_data);
+        $nickname= $post_json->nickname;
+        $password = password_hash($post_json->password,PASSWORD_BCRYPT);
+
+        $info = [
+            'password' => $password,
+            'nickname' => $nickname,
+        ];
+        $email = DB::table('user')->where(['nickname'=>$nickname])->first();
+        if($email){
+            $arr = ['status'=>3,'msg'=>'用户已存在'];
+            json_encode($arr,JSON_UNESCAPED_UNICODE);
+            return $arr;
+        }
+
+        $arr = DB::table('user')->insertGetId($info);
+        if($arr){
+            $arr = ['status'=>1,'msg'=>'注册成功'];
+            json_encode($arr,JSON_UNESCAPED_UNICODE);
+            return $arr;
+        }else{
+            $arr = ['status'=>0,'msg'=>'注册失败'];
+            json_encode($arr,JSON_UNESCAPED_UNICODE);
+            return $arr;
+        }
+    }
+
+    public function passlog()  //登录  接受APP的curl的值
+    {
+        $str = file_get_contents("php://input");
+//        echo '密文+base64:'.$str;
+
+        $arr = base64_decode($str);  //base64解开
+//        print_r($arr);
+        $pk = openssl_get_publickey('file://'.storage_path('app/key/public.pem'));
+        openssl_public_decrypt($arr,$dec_data,$pk);
+//        echo '<hr>';
+//        echo '明文:'.$dec_data;
+        $post_json = json_decode($dec_data);
+
+        $nickname= $post_json->nickname;
+        $password= $post_json->password;
+        $password= (password_hash($password,PASSWORD_BCRYPT));
+
+        $res = DB::table('user')->where(['nickname'=>$nickname])->first();
+        if ($res){
+
+//            var_dump(password_verify($password,$res->password));die;
+            if (password_verify($password,$res->password)){
+                $token = $this->token($res->id);
+                $token_key = 'APPtowtoken:id' .$res->id;
+                Redis::set($token_key,$token);
+                Redis::expire($token_key,259250);
+            }
+
+            $arr = ['status'=>1,'msg'=>'登录成功'];
+            json_encode($arr,JSON_UNESCAPED_UNICODE);
+            return $arr;
+
+        }else{
+            $arr = ['status'=>0,'msg'=>'登录失败'];
+            json_encode($arr,JSON_UNESCAPED_UNICODE);
+            return $arr;
+
+        }
+    }
+
 
     //app 注册
     public function aaa(Request $request)
     {
-//        header("Access-Control-Allow-Origin: http://clent.1809a.com");
-        header("Access-Control-Allow-Origin: *");
-//        echo time();die;
         $nickname =  $request->input('nickname');
         $password = password_hash($request->input('password'),PASSWORD_BCRYPT);
 //        print_r($email);
@@ -137,18 +213,18 @@ class PostController extends Controller
         }
     }
 
-
     //app 登录
     public function bbb(Request $request){
 
-        header("Access-Control-Allow-Origin: *");
-        header("Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE");
-        header('Access-Control-Allow-Headers:x-requested-with,content-type');
+//        header("Access-Control-Allow-Origin: *");
+//        header("Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE");
+//        header('Access-Control-Allow-Headers:x-requested-with,content-type');
 
         $nickname = $request->input('nickname');
         $password = $request->input('password');
 
         $arr = DB::table('user')->where(['nickname'=>$nickname])->first();
+//        print_r($arr);
         if ($arr){
 
             if (password_verify($password,$arr->password)){
@@ -179,11 +255,24 @@ class PostController extends Controller
 
     //个人中心
     public function ccc(){
-//        header("Access-Control-Allow-Origin: *");
-//        header("Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE");
-//        header('Access-Control-Allow-Headers:x-requested-with,content-type');
 
-        echo time();
+        $id = $_GET['id'];
+        $token = $_GET['token'];
+
+        $key = 'apptoken:id'.$id;
+
+        $token2 = Redis::get($key);
+        if ($token == $token2){
+            $arr = ['status'=>1,'msg'=>'进入成功'];
+            json_encode($arr,JSON_UNESCAPED_UNICODE);
+            return $arr;
+        }else{
+            $arr = ['status'=>0,'msg'=>'进入失败'];
+            json_encode($arr,JSON_UNESCAPED_UNICODE);
+            return $arr;
+
+        }
+
     }
 
 }
