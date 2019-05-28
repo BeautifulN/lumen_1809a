@@ -156,18 +156,18 @@ class PostController extends Controller
         $password= $post_json->password;
         $password= (password_hash($password,PASSWORD_BCRYPT));
 
-        $res = DB::table('user')->where(['nickname'=>$nickname])->first();
-        if ($res){
+        $arr = DB::table('user')->where(['nickname'=>$nickname])->first();
+        if ($arr){
 
 //            var_dump(password_verify($password,$res->password));die;
-            if (password_verify($password,$res->password)){
-                $token = $this->token($res->id);
-                $token_key = 'APPtowtoken:id' .$res->id;
-                Redis::set($token_key,$token);
-                Redis::expire($token_key,259250);
-            }
+//            if (password_verify($password,$res->password)){
+            $token = $this->token($arr->id);
+            $token_key = 'APPtowtoken:id' .$arr->id;
+            Redis::set($token_key,$token);
+            Redis::expire($token_key,259250);
+//            }
 
-            $arr = ['status'=>1,'msg'=>'登录成功'];
+            $arr = ['status'=>1,'msg'=>'登录成功','token'=>$token,'id'=>$arr->id];
             json_encode($arr,JSON_UNESCAPED_UNICODE);
             return $arr;
 
@@ -259,7 +259,7 @@ class PostController extends Controller
         $id = $_GET['id'];
         $token = $_GET['token'];
 
-        $key = 'apptoken:id'.$id;
+        $key = 'APPtowtoken:id'.$id;
 
         $token2 = Redis::get($key);
         if ($token == $token2){
